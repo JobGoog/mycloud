@@ -95,7 +95,7 @@
          # Настройки базы данных, что создали на этапе 12-13
          DATABASE_NAME=mycloud
          DATABASE_USER=postgres
-         DATABASE_PASSWORD=password
+         DATABASE_PASSWORD=postgres
          DATABASE_HOST=localhost
          DATABASE_PORT=5432
       ```
@@ -142,8 +142,8 @@
       [Service]
       User=<ИМЯ ПОЛЬЗОВАТЕЛЯ>
       Group=www-data
-      WorkingDirectory=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/backend
-      ExecStart=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/backend/venv/bin/gunicorn \
+      WorkingDirectory=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/backend
+      ExecStart=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/backend/venv/bin/gunicorn \
                --access-logfile - \
                --workers 3 \
                --bind unix:/run/gunicorn.sock \
@@ -188,7 +188,7 @@
       server {
          listen 80;
          server_name <ИМЯ ДОМЕНА ИЛИ IP АДРЕС СЕРВЕРА>;
-         root /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/frontend/dist;
+         root /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/frontend/dist;
          index index.html index.htm;
          try_files $uri $uri/ /index.html;
 
@@ -198,11 +198,11 @@
          }
 
          location /static/ {
-            alias /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/backend/static/;
+            alias /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/backend/static/;
          }
 
          location /media/ {
-            alias /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/backend/media/;
+            alias /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/backend/media/;
          }
 
          location /admindjango/ {
@@ -218,7 +218,7 @@
       ```
 
 34. Создаем символическую ссылку:\
-   `sudo ln -s /etc/nginx/sites-available/mycloud /etc/nginx/sites-enabled`
+   `sudo ln -s /etc/nginx/sites-available/mycloud/etc/nginx/sites-enabled`
 35. Добавляем пользователя `www-data` в группу текущего пользователя:\
    `sudo usermod -a -G ${USER} www-data`
 36. Диагностируем `nginx` на предмет ошибок в синтаксисе:\
@@ -244,7 +244,7 @@
 42. Проверяем версию `nvm`:\
    `nvm -v`
 43. Устанавливаем нужную версию `node`:\
-   `nvm install <НОМЕР ВЕРСИИ>`
+   `nvm install 22`
 44. Проверяем версию `node`:\
    `node -v`
 45. Проверяем версию `npm`:\
@@ -253,7 +253,7 @@
     ---
 
 46. Переходим в папку проекта `frontend`:\
-   `cd /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/Diplom_MyCloud/frontend`
+   `cd /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/frontend`
 47. В папке `frontend/src` в файле `config.ts` редактируем базовый URL:\
    `nano config.ts`\
    `const API_BASE_URL = 'http://<IP АДРЕС СЕРВЕРА>:8000';`
@@ -272,7 +272,7 @@
       ```
 
 50. Делаем файл `start.sh` исполняемым:\
-   `sudo chmod +x /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/frontend/start.sh`
+   `sudo chmod +x /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/frontend/start.sh`
 
     ---
 
@@ -287,8 +287,8 @@
       [Service]
       User=<ИМЯ ПОЛЬЗОВАТЕЛЯ>
       Group=www-data
-      WorkingDirectory=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/frontend
-      ExecStart=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/frontend/start.sh
+      WorkingDirectory=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/frontend
+      ExecStart=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/frontend/start.sh
 
       [Install]
       WantedBy=multi-user.target
