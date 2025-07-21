@@ -323,5 +323,6 @@
    `http://<IP АДРЕС СЕРВЕРА>/admindjango/`
 #   m y c l o u d 
  
- #   m y c l o u d  
+ #   m y c l o u d 
+ 
  
