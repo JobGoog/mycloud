@@ -1,0 +1,29 @@
+label {
+	font-size: 20px;
+}
+
+.input-signup {
+  margin-bottom: 30px;	
+}
+
+.button-signup {
+	padding: 10px 30px;
+	font-size: 15px;
+	border: 1px solid black;
+	border-radius: 10px;
+}
+
+.button-signup:hover {
+	background-color: black;
+  color: white;
+}
+
+.error-message {
+	color: red;
+	font-weight: bold;
+}
+
+.success-message {
+	color: green;
+	font-weight: bold;
+}

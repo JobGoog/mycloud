@@ -1,0 +1,19 @@
+label {
+	font-size: 20px;
+}
+
+.input-signin {
+  margin-bottom: 30px;	
+}
+
+.button-signin {
+	padding: 10px 30px;
+	font-size: 15px;
+	border: 1px solid black;
+	border-radius: 10px;
+}
+
+.button-signin:hover {
+	background-color: black;
+  color: white;
+}

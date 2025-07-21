@@ -1,0 +1,26 @@
+.wrap {
+	text-align: center;
+}
+
+.wrap p {
+  font-size: 20px;
+}
+
+.nav-ul {
+	list-style-type: none;
+	display: flex;
+	justify-content: space-evenly;
+  background-color: lightgray;
+}
+
+.nav-ul-li {
+  display: flex;
+  align-items: center;
+  height: 50px;
+}
+
+a {
+  color: rgb(4, 40, 244);
+  font-size: 30px;
+  text-decoration: none;
+}

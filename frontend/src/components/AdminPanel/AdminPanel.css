@@ -1,0 +1,46 @@
+.admin-panel {
+	font-family: Arial, sans-serif;
+	background-color: #f4f4f4;
+	margin: 0;
+	padding: 20px;
+}
+
+.admin-panel__title {
+	color: #333;
+	margin-bottom: 20px;
+}
+
+.admin-panel__list {
+	list-style-type: none;
+	padding: 0;
+}
+
+.admin-panel__item {
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 5px;
+	padding: 10px;
+	margin-bottom: 10px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.admin-panel__button {
+	background-color: #007bff;
+	color: white;
+	border: none;
+	border-radius: 5px;
+	padding: 8px 12px;
+	cursor: pointer;
+	transition: background-color 0.3s;
+}
+
+.admin-panel__button:hover {
+	background-color: #0056b3;
+}
+
+.admin-panel__button:disabled {
+	background-color: #ccc; /* Серый фон для отключенных кнопок */
+	cursor: not-allowed; /* Курсор-неразрешенный */
+}
