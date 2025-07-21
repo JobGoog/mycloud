@@ -1,4 +1,4 @@
-** Шаги по развертыванию приложения на сервере
+# **Шаги по развертыванию приложения на сервере**
 
 1. Генерируем SSH-ключ удобным способом. Копируем публичный SSH-ключ
 2. Создаем на сайте [reg.ru](https://cloud.reg.ru) облачный сервер:
@@ -70,12 +70,12 @@
 15. Проверяем что установлен `git`:\
    `git --version`
 16. Клонируем репозиторий:\
-   `git clone https://github.com/jobgoog/mycloud.git`
+   `git clone https://github.com/JobGoog/mycloud.git`
 
     ---
 
 17. Переходим в папку проекта `backend`:\
-   `cd /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/backend`
+   `cd /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/backend`
 18. Устанавливаем виртуальное окружение:\
    `python3 -m venv venv`
 19. Активируем виртуальное окружение:\
@@ -89,7 +89,6 @@
          # Настройки Django
          # можно сгенерировать на сайте https://djecrety.ir или с помощью терминала python: >>> import secrets >>> print(secrets.token_urlsafe(50))
          SECRET_KEY=*******
-         # False or True
          DEBUG=False
          ALLOWED_HOSTS=*
 
@@ -143,8 +142,8 @@
       [Service]
       User=<ИМЯ ПОЛЬЗОВАТЕЛЯ>
       Group=www-data
-      WorkingDirectory=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/backend
-      ExecStart=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/backend/venv/bin/gunicorn \
+      WorkingDirectory=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/backend
+      ExecStart=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/backend/venv/bin/gunicorn \
                --access-logfile - \
                --workers 3 \
                --bind unix:/run/gunicorn.sock \
@@ -189,7 +188,7 @@
       server {
          listen 80;
          server_name <ИМЯ ДОМЕНА ИЛИ IP АДРЕС СЕРВЕРА>;
-         root /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/frontend/dist;
+         root /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/frontend/dist;
          index index.html index.htm;
          try_files $uri $uri/ /index.html;
 
@@ -199,11 +198,11 @@
          }
 
          location /static/ {
-            alias /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/backend/static/;
+            alias /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/backend/static/;
          }
 
          location /media/ {
-            alias /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/backend/media/;
+            alias /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/backend/media/;
          }
 
          location /admindjango/ {
@@ -219,7 +218,7 @@
       ```
 
 34. Создаем символическую ссылку:\
-   `sudo ln -s /etc/nginx/sites-available/mycloud/etc/nginx/sites-enabled`
+   `sudo ln -s /etc/nginx/sites-available/mycloud /etc/nginx/sites-enabled`
 35. Добавляем пользователя `www-data` в группу текущего пользователя:\
    `sudo usermod -a -G ${USER} www-data`
 36. Диагностируем `nginx` на предмет ошибок в синтаксисе:\
@@ -254,7 +253,7 @@
     ---
 
 46. Переходим в папку проекта `frontend`:\
-   `cd /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/frontend`
+   `cd /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/Diplom_MyCloud/frontend`
 47. В папке `frontend/src` в файле `config.ts` редактируем базовый URL:\
    `nano config.ts`\
    `const API_BASE_URL = 'http://<IP АДРЕС СЕРВЕРА>:8000';`
@@ -273,7 +272,7 @@
       ```
 
 50. Делаем файл `start.sh` исполняемым:\
-   `sudo chmod +x /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/frontend/start.sh`
+   `sudo chmod +x /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/frontend/start.sh`
 
     ---
 
@@ -288,8 +287,8 @@
       [Service]
       User=<ИМЯ ПОЛЬЗОВАТЕЛЯ>
       Group=www-data
-      WorkingDirectory=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/frontend
-      ExecStart=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/frontend/start.sh
+      WorkingDirectory=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/frontend
+      ExecStart=/home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/frontend/start.sh
 
       [Install]
       WantedBy=multi-user.target
@@ -321,8 +320,3 @@
    `http://<IP АДРЕС СЕРВЕРА>`
 56. Проверяем доступность Django administration по адресу:\
    `http://<IP АДРЕС СЕРВЕРА>/admindjango/`
-#   m y c l o u d 
- 
- #   m y c l o u d 
- 
- 
