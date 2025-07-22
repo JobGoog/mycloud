@@ -1,4 +1,4 @@
-Шаги по развертыванию приложения на сервере
+# **Шаги по развертыванию приложения на сервере**
 
 1. Генерируем SSH-ключ удобным способом. Копируем публичный SSH-ключ
 2. Создаем на сайте [reg.ru](https://cloud.reg.ru) облачный сервер:
@@ -70,12 +70,12 @@
 15. Проверяем что установлен `git`:\
    `git --version`
 16. Клонируем репозиторий:\
-   `git clone https://github.com/jobgoog/mycloud.git`
+   `git clone https://github.com/JobGoog/mycloud.git`
 
     ---
 
 17. Переходим в папку проекта `backend`:\
-   `cd /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/My_Cloud_diplom/backend`
+   `cd /home/<ИМЯ ПОЛЬЗОВАТЕЛЯ>/mycloud/backend`
 18. Устанавливаем виртуальное окружение:\
    `python3 -m venv venv`
 19. Активируем виртуальное окружение:\
@@ -89,14 +89,13 @@
          # Настройки Django
          # можно сгенерировать на сайте https://djecrety.ir или с помощью терминала python: >>> import secrets >>> print(secrets.token_urlsafe(50))
          SECRET_KEY=*******
-         # False or True
          DEBUG=False
          ALLOWED_HOSTS=*
 
          # Настройки базы данных, что создали на этапе 12-13
          DATABASE_NAME=mycloud
          DATABASE_USER=postgres
-         DATABASE_PASSWORD=password
+         DATABASE_PASSWORD=postgres
          DATABASE_HOST=localhost
          DATABASE_PORT=5432
       ```
@@ -245,7 +244,7 @@
 42. Проверяем версию `nvm`:\
    `nvm -v`
 43. Устанавливаем нужную версию `node`:\
-   `nvm install <НОМЕР ВЕРСИИ>`
+   `nvm install 22`
 44. Проверяем версию `node`:\
    `node -v`
 45. Проверяем версию `npm`:\
@@ -321,7 +320,3 @@
    `http://<IP АДРЕС СЕРВЕРА>`
 56. Проверяем доступность Django administration по адресу:\
    `http://<IP АДРЕС СЕРВЕРА>/admindjango/`
-#   m y c l o u d 
- 
- #   m y c l o u d  
- 
