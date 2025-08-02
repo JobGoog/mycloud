@@ -1,3 +1,10 @@
+# **Сайты**
+
+[Чистый](http://193.227.241.76)
+[Админка](http://193.227.241.76/admindjango/)
+
+
+
 # **Шаги по развертыванию приложения на сервере**
 
 1. Генерируем SSH-ключ удобным способом. Копируем публичный SSH-ключ
@@ -218,7 +225,7 @@
       ```
 
 34. Создаем символическую ссылку:\
-   `sudo ln -s /etc/nginx/sites-available/mycloud/etc/nginx/sites-enabled`
+   `sudo ln -s /etc/nginx/sites-available/mycloud /etc/nginx/sites-enabled`
 35. Добавляем пользователя `www-data` в группу текущего пользователя:\
    `sudo usermod -a -G ${USER} www-data`
 36. Диагностируем `nginx` на предмет ошибок в синтаксисе:\
