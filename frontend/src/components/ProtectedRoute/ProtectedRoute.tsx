@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import API_BASE_URL from '../../config';
+import SimpleStorage from '../../utils/storage';
 
 /**
  * Компонент ProtectedRoute обеспечивает защиту маршрутов для аутентифицированных пользователей.
@@ -24,7 +25,7 @@ export const ProtectedRoute: React.FC<{
 }> = ({ children, requireAdmin }) => {
     const [loading, setLoading] = useState(true);
     const [redirectPath, setRedirectPath] = useState<string | null>(null);
-    const token = localStorage.getItem('token');
+    const token = SimpleStorage.getItem('token');
     
     useEffect(() => {
         const roleUser = async () => {

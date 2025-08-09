@@ -1,6 +1,9 @@
 import "./LoginForm.css";
 
 import API_BASE_URL from '../../config';
+import SimpleStorage from '../../utils/storage';
+import AuthUtils from '../../utils/authUtils';
+import ErrorHandler from '../../utils/errorHandler';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -40,7 +43,7 @@ export const LoginForm: React.FC<{ updateRole: (role: string, is_superuser: bool
         e.preventDefault();
 
         try {
-            const response = await fetch(`${API_BASE_URL}/auth/token/login/`, {
+            const response = await fetch(`${API_BASE_URL}/api/v1/auth/token/login/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -55,7 +58,10 @@ export const LoginForm: React.FC<{ updateRole: (role: string, is_superuser: bool
             const data = await response.json();
             
             const { auth_token } = data;
-            localStorage.setItem('token', auth_token);
+            SimpleStorage.setItem('token', auth_token);
+            
+            // Сохраняем учетные данные для автообновления токена
+            AuthUtils.saveCredentials(username, password);
             
             const response_user = await fetch(`${API_BASE_URL}/api/users/`, {
                 method: 'POST',
@@ -74,7 +80,7 @@ export const LoginForm: React.FC<{ updateRole: (role: string, is_superuser: bool
             const data_user = await response_user.json();
             
             const { role, id_user, is_superuser } = data_user;
-            localStorage.setItem('role', role);
+            SimpleStorage.setItem('role', role);
             
             // Обновляем роль
             updateRole(role, is_superuser);
@@ -86,12 +92,8 @@ export const LoginForm: React.FC<{ updateRole: (role: string, is_superuser: bool
                 navigate(`/storage/${id_user}`);
             }
         } catch (err: unknown) {
-            console.error(err);
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError('Произошла ошибка');
-            }
+            const errorInfo = ErrorHandler.handleError(err, 'Вход в систему');
+            setError(errorInfo.message);
         }
     };
 

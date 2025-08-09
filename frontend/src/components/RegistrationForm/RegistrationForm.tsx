@@ -1,5 +1,6 @@
 import "./RegistrationForm.css";
 import API_BASE_URL from '../../config';
+import ErrorHandler from '../../utils/errorHandler';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -26,9 +27,17 @@ export const RegistrationForm: React.FC = () => {
      *                      Возвращает `false`, если есть ошибки валидации.
      */
     const validateForm = (): boolean => {
-        const usernameRegex = /^[a-zA-Z][a-zA-Z0-9]{3,19}$/;
-        if (!usernameRegex.test(username)) {
-            setError('Логин должен начинаться с буквы, содержать только латинские буквы и цифры, и быть длиной от 4 до 20 символов.');
+        // Приводим валидацию логина в соответствие с backend требованиями
+        if (username.length < 3) {
+            setError('Логин должен содержать минимум 3 символа.');
+            return false;
+        }
+        if (username.length > 20) {
+            setError('Логин не должен превышать 20 символов.');
+            return false;
+        }
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+            setError('Логин может содержать только латинские буквы, цифры и подчеркивание.');
             return false;
         }        
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -36,9 +45,29 @@ export const RegistrationForm: React.FC = () => {
             setError('Неверный формат email.');
             return false;
         }        
-        const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
-        if (!passwordRegex.test(password)) {
-            setError('Пароль должен содержать минимум 6 символов, одну заглавную букву, одну цифру и один специальный символ.');
+        // Усиленная валидация пароля в соответствие с backend требованиями
+        if (password.length < 8) {
+            setError('Пароль должен содержать минимум 8 символов.');
+            return false;
+        }
+        if (password.length > 50) {
+            setError('Пароль не должен превышать 50 символов.');
+            return false;
+        }
+        if (!/[a-z]/.test(password)) {
+            setError('Пароль должен содержать хотя бы одну маленькую букву.');
+            return false;
+        }
+        if (!/[A-Z]/.test(password)) {
+            setError('Пароль должен содержать хотя бы одну большую букву.');
+            return false;
+        }
+        if (!/[0-9]/.test(password)) {
+            setError('Пароль должен содержать хотя бы одну цифру.');
+            return false;
+        }
+        if (!/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(password)) {
+            setError('Пароль должен содержать хотя бы один специальный символ (!@#$%^&*()_+-=[]{}|;:,.<>?).');
             return false;
         }
         setError(''); 
@@ -83,7 +112,35 @@ export const RegistrationForm: React.FC = () => {
             });
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || 'Ошибка во время регистрации');
+                
+                // Обрабатываем ошибки валидации Django REST Framework
+                const errorMessages: string[] = [];
+                
+                if (errorData.username) {
+                    errorMessages.push(`Логин: ${errorData.username.join(', ')}`);
+                }
+                if (errorData.email) {
+                    errorMessages.push(`Email: ${errorData.email.join(', ')}`);
+                }
+                if (errorData.password) {
+                    errorMessages.push(`Пароль: ${errorData.password.join(', ')}`);
+                }
+                if (errorData.fullname) {
+                    errorMessages.push(`Полное имя: ${errorData.fullname.join(', ')}`);
+                }
+                
+                // Если есть общие ошибки (non_field_errors)
+                if (errorData.non_field_errors) {
+                    errorMessages.push(...errorData.non_field_errors);
+                }
+                
+                // Если есть конкретные ошибки полей, показываем их
+                if (errorMessages.length > 0) {
+                    throw new Error(errorMessages.join(' '));
+                }
+                
+                // Если ошибки в неожиданном формате, показываем общее сообщение
+                throw new Error(errorData.detail || errorData.message || 'Ошибка при регистрации. Проверьте введенные данные.');
             }
             setSuccess('Регистрация прошла успешно!');
             setError('');
@@ -91,12 +148,8 @@ export const RegistrationForm: React.FC = () => {
                 navigate('/signin'); 
             }, 2000);
         } catch (err: unknown) {
-            console.error(err);
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError('Произошла ошибка');
-            }
+            const errorInfo = ErrorHandler.handleError(err, 'Регистрация пользователя');
+            setError(errorInfo.message);
         }
     };
 

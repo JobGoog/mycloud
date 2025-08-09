@@ -1,5 +1,6 @@
 import './App.css';
 import API_BASE_URL from './config';
+import SimpleStorage from './utils/storage';
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { useEffect, useState } from 'react';
 import { LoginForm } from './components/LoginForm';
@@ -33,7 +34,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
  * @returns {JSX.Element} - Возвращает JSX, представляющий главный интерфейс приложения с навигацией и маршрутами.
  */
 const App = () => {
-    const [role, setRole] = useState<string>(localStorage.getItem('role') ?? '');
+    const [role, setRole] = useState<string>(SimpleStorage.getItem('role') ?? '');
     const [isSuperuser, setIsSuperuser] = useState<boolean>(false);
     
     // Функция выхода из системы
@@ -42,7 +43,7 @@ const App = () => {
         const response = await fetch(`${API_BASE_URL}/auth/token/logout/`, {
             method: 'POST',
             headers: {
-                'Authorization': `Token ${localStorage.getItem('token')}`,
+                'Authorization': `Token ${SimpleStorage.getItem('token')}`,
             },
         });
 
@@ -51,9 +52,9 @@ const App = () => {
             throw new Error(errorData.detail || 'Не удалось выйти.');
         }
 
-        localStorage.removeItem('token');
-        localStorage.removeItem('id_user');
-        localStorage.removeItem('role');
+        SimpleStorage.removeItem('token');
+        SimpleStorage.removeItem('id_user');
+        SimpleStorage.removeItem('role');
         setRole('');
         setIsSuperuser(false);
         console.log('Вы успешно вышли.');
@@ -67,7 +68,7 @@ const App = () => {
 
     // проверяем наличие роли при загрузке приложения (один раз при монтировании)
     useEffect(() => {
-        const storedRole = localStorage.getItem('role');
+        const storedRole = SimpleStorage.getItem('role');
         if (storedRole) {
             setRole(storedRole);
         }

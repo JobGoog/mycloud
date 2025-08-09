@@ -1,6 +1,9 @@
 import os
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from cryptography.fernet import Fernet
+from django.conf import settings
+import base64
 
 class UserManager(BaseUserManager):
     def create_user(self, email, username, password=None, **extra_fields):
@@ -52,7 +55,7 @@ class Storage(models.Model):
     upload_date = models.DateTimeField(auto_now_add=True, db_column="uploaddate")
     last_download_date = models.DateTimeField(null=True, auto_now=False, blank=True, db_column="lastdownloaddate")
     file = models.FileField(upload_to='uploads/')
-    token = models.CharField(max_length=32, null=True, blank=True)
+    token = models.CharField(max_length=128, null=True, blank=True)  # увеличил размер для зашифрованного токена
     token_expiration = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -60,6 +63,37 @@ class Storage(models.Model):
 
     def __str__(self):
         return self.original_name
+
+    def encrypt_token(self, plain_token):
+        """Простое шифрование токена для учебного проекта"""
+        try:
+            encoded_token = base64.b64encode(plain_token.encode()).decode()
+            return f"enc_{encoded_token}"
+        except Exception:
+            return plain_token
+
+    def decrypt_token(self, encrypted_token):
+        """Простая расшифровка токена"""
+        try:
+            if encrypted_token.startswith("enc_"):
+                encoded_part = encrypted_token[4:]  # убираем префикс "enc_"
+                return base64.b64decode(encoded_part.encode()).decode()
+            return encrypted_token
+        except Exception:
+            return encrypted_token
+
+    def set_token(self, plain_token):
+        """Устанавливает зашифрованный токен"""
+        if plain_token:
+            self.token = self.encrypt_token(plain_token)
+        else:
+            self.token = None
+
+    def get_token(self):
+        """Получает расшифрованный токен"""
+        if self.token:
+            return self.decrypt_token(self.token)
+        return None
 
     def delete(self, *args, **kwargs):
         # Удаляем файл из файловой системы

@@ -1,28 +1,34 @@
 import mimetypes
 import os
+import urllib.parse
+import logging
+
 from django.conf import settings
 from django.http import FileResponse, Http404, HttpResponse, StreamingHttpResponse
-from django.views import View
 from django.utils.crypto import get_random_string
 from django.utils import timezone
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import AllowAny, IsAuthenticated
-import urllib.parse
+
 from .serializers import UserSerializer, StorageSerializer
 from .models import User, Storage
 from .permissions import IsAuthenticatedOrViewFile
-import logging
 
 # Настройка логирования
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 class UserView(APIView):
     permission_classes = [AllowAny]
-    # Метод для обработки GET-запрос: получение списка всех пользователей с данными или получение данных о пользователе по токену
+    # Метод для обработки GET-запрос: получение списка всех пользователей 
+    # с данными или получение данных о пользователе по токену
     def get(self, request, id_user=None):
         logger.info('GET запрос: %s', request.path)
         if request.path == '/api/users/user_info/':
@@ -160,6 +166,15 @@ class StorageView(APIView):
         file.save(update_fields=['last_download_date'])
 
     # Метод для очистки истекших токенов для специальных ссылок
+    # Метод для проверки прав доступа пользователя
+    def check_user_access(self, request, target_user_id):
+        """Проверяет может ли пользователь получить доступ к файлам target_user_id"""
+        # Админы могут видеть файлы всех пользователей
+        if request.user.role == 'admin' or request.user.is_superuser:
+            return True
+        # Обычные пользователи могут видеть только свои файлы
+        return str(request.user.id_user) == str(target_user_id)
+
     def clean_expired_tokens(self):
         objects = Storage.objects.filter(token_expiration__lt=timezone.now())
         # Обновляем истекшие токены, очищая поля token и token_expiration
@@ -180,6 +195,11 @@ class StorageView(APIView):
             # скачивание файла по токену(специальной ссылке)
             return self.download_file_by_token(request, token)
         else:
+            # Проверка прав доступа к файлам пользователя
+            if not self.check_user_access(request, id_user):
+                logger.warning('Пользователь %s пытается получить доступ к файлам пользователя %s', request.user.username, id_user)
+                return Response({"detail": "Нет доступа к файлам этого пользователя"}, status=status.HTTP_403_FORBIDDEN)
+                
             self.clean_expired_tokens()  # удаляем истекшие ссылки
             # получение списка всех файлов
             queryset = Storage.objects.filter(id_user=id_user)
@@ -193,7 +213,15 @@ class StorageView(APIView):
         """
         logger.debug('Получение параметров файла: id_file=%s, token=%s', id_file, token)
         if token:
-            file = Storage.objects.get(token=token)
+            # Ищем файл по расшифрованному токену
+            all_files = Storage.objects.exclude(token__isnull=True)
+            file = None
+            for storage_item in all_files:
+                if storage_item.get_token() == token:
+                    file = storage_item
+                    break
+            if not file:
+                raise Storage.DoesNotExist
         elif id_file: 
             file = Storage.objects.get(id_file=id_file)
 
@@ -313,6 +341,11 @@ class StorageView(APIView):
     # Метод для обработки POST-запроса: загрузка нового файла, генерации ссылки
     def post(self, request, id_user=None, id_file=None):
         logger.info('POST запрос: id_user=%s, id_file=%s', id_user, id_file)
+        # Проверка прав доступа
+        if not self.check_user_access(request, id_user):
+            logger.warning('Пользователь %s пытается работать с файлами пользователя %s', request.user.username, id_user)
+            return Response({"detail": "Нет доступа к файлам этого пользователя"}, status=status.HTTP_403_FORBIDDEN)
+            
         if id_file and id_user:
             # генерация ссылки
             return self.generate_file_link(request, id_user, id_file)
@@ -333,12 +366,12 @@ class StorageView(APIView):
         # Генерируем уникальный токен
         unique_token = get_random_string(length=32)
 
-        # Сохраняем токен
-        storage_item.token = unique_token
+        # Сохраняем зашифрованный токен
+        storage_item.set_token(unique_token)
         storage_item.token_expiration = timezone.now() + timezone.timedelta(minutes=5)
         storage_item.save()
 
-        # Формируем ссылку
+        # Формируем ссылку с незашифрованным токеном
         link = request.build_absolute_uri(f"/api/storage/download/{unique_token}/")
         logger.info('Ссылка сгенерирована: %s', link)
 
@@ -356,27 +389,43 @@ class StorageView(APIView):
             logger.error('Пользователь не найден: id_user=%s', id_user)
             return Response({"detail": "Пользователь не найден"}, status=status.HTTP_404_NOT_FOUND)
 
+        # Проверяем и обрабатываем конфликты имен файлов
+        original_filename = file.name
+        name_without_ext, ext = os.path.splitext(original_filename)
+        final_filename = original_filename
+        counter = 1
+        
+        # Проверяем есть ли уже файл с таким именем у этого пользователя
+        while Storage.objects.filter(id_user=user, original_name=final_filename).exists():
+            final_filename = f"{name_without_ext}({counter}){ext}"
+            counter += 1
+            logger.info('Конфликт имени файла. Пробуем: %s', final_filename)
+
         # Сохраняем файл и информацию о файле в базе данных
         storage_file = Storage(
             id_user=user,
-            original_name=file.name,
+            original_name=final_filename,
             comment=comment,
             size=file.size,
             file=file
         )
         storage_file.save()
 
-        if file.name.replace(' ', '_') != storage_file.file.name.split('/')[-1]:
-            new_name = storage_file.file.name.split('/')[-1]  # Получаем имя файла без пути
-            logger.warning("Файл %s уже существует. Изменяем его на %s", file.name, new_name)
-            storage_file.new_name = new_name
+        # Если имя изменилось, записываем новое имя
+        if final_filename != original_filename:
+            logger.warning("Файл %s переименован в %s из-за конфликта", original_filename, final_filename)
+            storage_file.new_name = storage_file.file.name.split('/')[-1]
             storage_file.save()
-        logger.info('Файл %s загружен успешно', file.name)
+        logger.info('Файл %s загружен успешно', final_filename)
         return self.get(request, id_user)
     
     # Метод для обработки PATCH-запроса: переименование файла
     def patch(self, request, id_user, id_file):
         logger.info('PATCH запрос для переименования файла: id_user=%s, id_file=%s', id_user, id_file)
+        # Проверка прав доступа
+        if not self.check_user_access(request, id_user):
+            logger.warning('Пользователь %s пытается переименовать файл пользователя %s', request.user.username, id_user)
+            return Response({"detail": "Нет доступа к файлам этого пользователя"}, status=status.HTTP_403_FORBIDDEN)
         new_name = request.data["name"]
         # Проверяем, существует ли файл с таким именем
         if os.path.exists(os.path.join(settings.MEDIA_ROOT, "uploads", new_name)):
@@ -407,7 +456,11 @@ class StorageView(APIView):
         
     # Метод для обработки DELETE-запроса: удаление файла по ID
     def delete(self, request, id_user, id_file): 
-        logger.info('DELETE запрос для файла: id_user=%s, id_file=%s', id_user, id_file)       
+        logger.info('DELETE запрос для файла: id_user=%s, id_file=%s', id_user, id_file)
+        # Проверка прав доступа
+        if not self.check_user_access(request, id_user):
+            logger.warning('Пользователь %s пытается удалить файл пользователя %s', request.user.username, id_user)
+            return Response({"detail": "Нет доступа к файлам этого пользователя"}, status=status.HTTP_403_FORBIDDEN)       
         try:
             file = Storage.objects.get(id_user=id_user, id_file=id_file)
             file.delete()

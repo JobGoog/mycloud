@@ -1,16 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import API_BASE_URL from '../../config';
 import './FileStorage.css';
-
-interface FileItem {
-    id_file: number;
-    original_name: string;
-    comment: string;
-    size: number;
-    upload_date: string;
-    last_download_date: string;
-}
+import FileUtils, { FileItem } from '../../utils/fileUtils';
+import ErrorHandler from '../../utils/errorHandler';
+import API_BASE_URL from '../../config';
+import SimpleStorage from '../../utils/storage';
 
 export const FileStorage: React.FC = () => {
     const { id_user } = useParams<{ id_user: string }>(); // Получаем ID пользователя из URL
@@ -19,144 +13,58 @@ export const FileStorage: React.FC = () => {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);  // Состояние для хранения выбранного файла для загрузки
     const [comment, setComment] = useState<string>('');  // Состояние для хранения комментария к загружаемому файлу
     const [isLoading, setIsLoading] = useState<boolean>(false);  // Состояние для отслеживания состояния загрузки
-    const auth_token = localStorage.getItem('token');
-    
-    /**
-     * Хук, который загружает файлы из API при монтировании компонента.
-     */
+    // Загрузка файлов при монтировании компонента
+    const loadFiles = async () => {
+        setIsLoading(true);
+        try {
+            const data = await FileUtils.fetchFiles(id_user!);
+            setFiles(data);
+        } catch (err: unknown) {
+            const errorInfo = ErrorHandler.handleError(err, 'Загрузка файлов');
+            setError(errorInfo.message);
+            setTimeout(() => setError(''), 3000);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchFiles = async () => {
-            setIsLoading(true);
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/storage/${id_user}`, {
-                    headers: {
-                        'Authorization': `Token ${auth_token}`,
-                    },
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Не удалось загрузить файлы');
-                }
-                const data = await response.json();
-                setFiles(data);
-            } catch (err: unknown) {
-                console.error(err);
-                if (err instanceof Error) {
-                    setError(err.message);
-                } else {
-                    setError('Произошла ошибка при загрузке файлов');
-                }
-            } finally {
-                setIsLoading(false);
-                setTimeout(() => {
-                    setError('');
-                }, 3000);
-            }
-        };
-        fetchFiles();
-    }, [auth_token, id_user]);
+        loadFiles();
+    }, [id_user]);
     
-    /**
-     * Обработчик загрузки файла. Загружает выбранный файл и комментарий на сервер.
-     * 
-     * При отправке формы функция проверяет наличие выбранного файла. Если файл выбран, 
-     * он добавляется в объект FormData вместе с комментарием. Затем функция отправляет
-     * POST-запрос на сервер для загрузки файла. При успешной загрузке обновляется
-     * список файлов, и происходит сброс выбранного файла и комментария. 
-     * Также обрабатываются ошибки, которые могут возникнуть во время загрузки.
-     *
-     * Функция устанавливает состояние загрузки в true до завершения запроса 
-     * и обратно в false в любом случае, чтобы отразить состояние загрузки 
-     * в пользовательском интерфейсе.
-     * 
-     * @param {React.FormEvent<HTMLFormElement>} e - Событие отправки формы.
-     * @returns {Promise<void>} - Возвращает промис, который разрешается после завершения операции.
-     */
+    // Обработчик загрузки файла
     const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        // Если файл не выбран, прерываем выполнение функции
         if (!selectedFile) return;
         
-        // Создаем новый объект FormData и добавляем в него выбранный файл и комментарий
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        formData.append('comment', comment);
-
-        setIsLoading(true); // Устанавливаем состояние загрузки в true
+        setIsLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/storage/${id_user}/`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Token ${auth_token}`,
-                },
-                body: formData,
-            });
-            if (!response.ok) {
-                throw new Error('Не удалось загрузить файл');
-            }
-            const newFiles = await response.json(); // Получаем новый список файлов после загрузки
+            const newFiles = await FileUtils.uploadFile(id_user!, selectedFile, comment);
             setFiles(newFiles);
             setComment('');
             setSelectedFile(null);
         } catch (err: unknown) {
-            console.error(err);
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError('Произошла ошибка при загрузке файла');
-            }
+            const errorInfo = ErrorHandler.handleError(err, 'Загрузка файла');
+            setError(errorInfo.message);
+            setTimeout(() => setError(''), 3000);
         } finally {
             setIsLoading(false);
-            setTimeout(() => {
-                setError('');
-            }, 3000);
         }
     };
 
-    /**
-     * Обработчик удаления файла. Удаляет файл с указанным идентификатором.
-     * 
-     * Функция отправляет DELETE-запрос на сервер для удаления файла с заданным 
-     * идентификатором. Если запрос завершен успешно, файл удаляется из состояния, 
-     * хранящего список файлов в компоненте. В случае возникновения ошибки при 
-     * удалении, она обрабатывается и выводится сообщение об ошибке пользователю.
-     * 
-     * Функция устанавливает состояние загрузки в true во время запроса 
-     * и устанавливает его в false после завершения операции.
-     * 
-     * @param {number} id_file - Идентификатор файла, который нужно удалить.
-     * @returns {Promise<void>} - Возвращает промис, который разрешается после завершения операции.
-     */
+    // Обработчик удаления файла
     const handleDelete = async (id_file: number) => {
-        setIsLoading(true); // Устанавливаем состояние загрузки в true
+        setIsLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/storage/${id_user}/${id_file}/`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Token ${auth_token}`,
-                },
-            });
-            
-            if (!response.ok) {
-                throw new Error('Не удалось удалить файл');
-            }
-
-            // Обновляем состояние файлов, исключая удаляемый файл
+            await FileUtils.deleteFile(id_user!, id_file);
             const newFiles = files.filter(file => file.id_file !== id_file);
-
             setFiles(newFiles);
         } catch (err: unknown) {
-            console.error(err);
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError('Произошла ошибка при удалении файла');
-            }
+            const errorInfo = ErrorHandler.handleError(err, 'Удаление файла');
+            setError(errorInfo.message);
+            setTimeout(() => setError(''), 3000);
         } finally {
             setIsLoading(false);
-            setTimeout(() => {
-                setError('');
-            }, 3000);
         }
     };
 
@@ -176,40 +84,18 @@ export const FileStorage: React.FC = () => {
     const handleRename = async (id_file: number, newName: string) => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/storage/${id_user}/${id_file}/`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Token ${auth_token}`,
-                },
-                body: JSON.stringify({ name: newName }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json(); // Получаем данные об ошибке
-                if (response.status === 400 && errorData) {
-                    throw new Error(JSON.stringify(errorData)); // Генерируем ошибку с сообщением из ответа
-                } else {
-                    throw new Error('Не удалось переименовать файл');
-                }
-            }
-            
-            const updatedFile = await response.json(); // Получаем обновленные данные файла
-
-            // Обновляем состояние файлов, заменяя старое имя на новое для конкретного файла
-            setFiles(files.map(file => (file.id_file === id_file ? updatedFile : file)));
+            const updatedFile = await FileUtils.renameFile(id_user!, id_file, newName);
+            // Обновляем файл в списке
+            const updatedFiles = files.map(file => 
+                file.id_file === id_file ? updatedFile : file
+            );
+            setFiles(updatedFiles);
         } catch (err: unknown) {
-            console.error(err);
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError('Произошла ошибка при переименовании файла');
-            }
+            const errorInfo = ErrorHandler.handleError(err, 'Переименование файла');
+            setError(errorInfo.message);
+            setTimeout(() => setError(''), 3000);
         } finally {
             setIsLoading(false);
-            setTimeout(() => {
-                setError('');
-            }, 3000);
         }
     };
 
@@ -225,7 +111,7 @@ export const FileStorage: React.FC = () => {
      */
     const handleDownload = async (id_file: number) => {
         setIsLoading(true);
-        const token = localStorage.getItem('token');
+        const token = SimpleStorage.getItem('token');
         try {
             const response = await fetch(`${API_BASE_URL}/api/storage/download/${id_file}/`, {
                 method: 'GET',
@@ -316,7 +202,7 @@ export const FileStorage: React.FC = () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Token ${auth_token}`, // аутентификация через токен
+                    'Authorization': `Token ${SimpleStorage.getItem('token')}`, // аутентификация через токен
                 },
             });
 

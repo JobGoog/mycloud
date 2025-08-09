@@ -24,5 +24,5 @@ urlpatterns = [
     path("api/", include("api_app.urls")),
     path("api/v1/drf-auth/", include("rest_framework.urls")),
     path("api/v1/auth/", include('djoser.urls')),
-    re_path(r'^auth/', include('djoser.urls.authtoken')),
+    path("api/v1/auth/", include('djoser.urls.authtoken')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
